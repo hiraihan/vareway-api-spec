@@ -1,0 +1,356 @@
+openapi: 3.0.3
+info:
+  title: Vareway API Spec
+  description: The full API Spec includes Auth, Profile Management, and User Learning Activity..
+  version: 1.1.0
+servers:
+  - url: http://vareway.innovare.biz.id/api/v1
+    description: Development Server
+  - url: http://vareway.innovare.biz.id/api/v1
+    description: Production Server  
+
+tags:
+  - name: Auth
+    description: Registrasi, Login, dan Logout
+  - name: Profile
+    description: Manajemen data diri user dan avatar
+  - name: Learning
+    description: Aktivitas pembelajaran user
+
+paths:
+  # ==========================
+  # AUTHENTICATION
+  # ==========================
+  /auth/register:
+    post:
+      summary: Registrasi User
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Validation Error
+
+  /auth/login:
+    post:
+      summary: Login
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+
+  /auth/logout:
+    post:
+      summary: Logout (NEW)
+      description: Menghapus sesi user atau memblacklist refresh token. Sesuai menu 'Log Out'.
+      tags:
+        - Auth
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout berhasil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Berhasil logout."
+
+  /auth/verify-email:
+    post:
+      summary: Verifikasi Email
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+              properties:
+                token:
+                  type: string
+      responses:
+        '200':
+          description: Verified
+
+  /auth/resend-verification:
+    post:
+      summary: Resend Verification Email
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Email sent
+
+  /auth/forgot-password:
+    post:
+      summary: Forgot Password
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Reset instruction sent
+
+  # ==========================
+  # PROFILE (Sesuai Gambar 1)
+  # ==========================
+  /profile/me:
+    get:
+      summary: Get Profile Data
+      description: Dipakai untuk menampilkan kartu nama di menu dropdown (Gambar 2) dan isi form edit (Gambar 1).
+      tags:
+        - Profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+        '401':
+          description: Unauthorized
+
+    put:
+      summary: Update Profile
+      description: Mengupdate field sesuai form (Recovery contact, Interest, Specialization).
+      tags:
+        - Profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Profil berhasil diperbarui"
+                  data:
+                    $ref: '#/components/schemas/ProfileResponse'
+
+  /profile/avatar:
+    post:
+      summary: Upload Avatar
+      tags:
+        - Profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Max 2MB (jpg, png)
+      responses:
+        '200':
+          description: Uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Avatar updated"
+                  avatar_url:
+                    type: string
+
+  # ==========================
+  # LEARNING (Sesuai Menu Gambar 2)
+  # ==========================
+  /learning/last-accessed:
+    get:
+      summary: Get Last Learning Activity (NEW)
+      description: Mengambil data materi terakhir yang dipelajari user untuk fitur 'pembelajaran terakhir'.
+      tags:
+        - Learning
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Data ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LastLearningResponse'
+        '404':
+          description: User belum pernah memulai pembelajaran apapun.
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # --- AUTH SCHEMAS ---
+    RegisterRequest:
+      type: object
+      required: [full_name, username, email, password, re_password]
+      properties:
+        full_name: { type: string, example: "M. Agil Ripa'i" }
+        username: { type: string, example: "agil123" }
+        email: { type: string, format: email, example: "Mehrabbozorgi.business@gmail.com" }
+        password: { type: string, format: password, example: "Secret123!" }
+        re_password: { type: string, format: password, example: "Secret123!" }
+
+    LoginRequest:
+      type: object
+      required: [identifier, password]
+      properties:
+        identifier: { type: string, description: "Email or Username", example: "agil123" }
+        password: { type: string, format: password }
+
+    LoginResponse:
+      type: object
+      properties:
+        accessToken: { type: string }
+        refreshToken: { type: string }
+        user: { $ref: '#/components/schemas/UserResponse' }
+
+    UserResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        full_name: { type: string, example: "M. Agil Ripa'i" }
+        username: { type: string, example: "agil123" }
+        email: { type: string, example: "Mehrabbozorgi.business@gmail.com" }
+        avatar_url: { type: string, example: "https://cdn.lms.com/avatars/u-1.jpg" }
+
+    # --- PROFILE SCHEMAS (UPDATED) ---
+    ProfileResponse:
+      allOf:
+        - $ref: '#/components/schemas/UserResponse'
+        - type: object
+          properties:
+            recovery_contact:
+              type: string
+              description: "Email Pemulihan / No Pemulihan"
+              example: "58077.79"
+            interest:
+              type: string
+              description: "Minat utama"
+              example: "Web developer"
+            specialization:
+              type: string
+              description: "Spesifikasi minat"
+              example: "ui/ux"
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        full_name:
+          type: string
+          example: "M. Agil Ripa'i"
+        email:
+          type: string
+          format: email
+        recovery_contact:
+          type: string
+          description: "Field untuk Email Pemulihan atau No HP"
+          example: "58077.79"
+        interest:
+          type: string
+          example: "Web developer"
+        specialization:
+          type: string
+          example: "ui/ux"
+
+    # --- LEARNING SCHEMAS (NEW) ---
+    LastLearningResponse:
+      type: object
+      description: Data untuk menu 'pembelajaran terakhir'
+      properties:
+        course_id:
+          type: string
+          example: "c-101"
+        course_title:
+          type: string
+          example: "Fullstack Web Development"
+        last_chapter_title:
+          type: string
+          example: "Pengenalan Database"
+        progress_percentage:
+          type: integer
+          example: 45
+        continue_url:
+          type: string
+          description: "Slug atau URL untuk redirect user langsung ke materi tersebut"
+          example: "/course/fullstack-web/chapter/database"
+        last_accessed_at:
+          type: string
+          format: date-time
