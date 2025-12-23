@@ -1778,6 +1778,6 @@ components:
             type: string
             enum: [in-app, email, push]
           example:  ["in-app", "email"]
-          description: Channel mana yang diaktifkan
+          description: Channel mana yang diaktifkann
 
    
