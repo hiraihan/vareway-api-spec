@@ -1,0 +1,1783 @@
+openapi: 3.0.3
+
+info:
+  title: VAREWAY Learning Platform API
+  description: |
+    # VAREWAY Learning Platform API Documentation
+
+
+    
+    ## Fitur Utama: 
+    - Kursus & Rekomendasi
+    - Tracking Progress Belajar
+    - Enrollment & Manajemen Kelas
+    - Quiz & Assessment
+    - Notification
+
+  version: 1.0.0
+ 
+
+servers:
+  - url: https://api.vareway.com/v1
+    description: Production Server
+  - url: http://localhost:3000/v1
+    description: Development Server
+
+tags:
+  - name:  Learning Progress
+    description: Tracking progress pembelajaran user
+  - name: Courses
+    description:  Katalog dan detail kursus
+  - name:  Recommendations
+    description: Rekomendasi kursus untuk user
+  - name: Enrollment
+    description: Pendaftaran dan manajemen kelas
+  - name:  Modules & Lessons
+    description: Konten pembelajaran (modul dan lesson)
+  - name: Quiz & Assessment
+    description: Quiz, ujian, dan penilaian
+  - name: Tutorials
+    description: Tutorial dan panduan platform
+    
+security:
+  - BearerAuth: []
+
+# ===================
+# PATHS / ENDPOINTS
+# ===================
+
+paths:
+  # LEARNING PROGRESS
+
+  /user/learning-progress:
+    get: 
+      tags:
+        - Learning Progress
+      summary: Get learning progress
+      description: Mendapatkan progress pembelajaran user secara keseluruhan
+      operationId: getLearningProgress
+      responses:
+        '200':
+          description: Progress berhasil diambil
+          content:
+            application/json:
+              schema: 
+                type: object
+                properties: 
+                  success:
+                    type: boolean
+                    example:  true
+                  data:
+                    type: object
+                    properties:
+                      activeClasses:
+                        type:  array
+                        items:
+                          $ref: '#/components/schemas/CourseProgress'
+                        description: Kursus yang sedang aktif dipelajari
+                      recentlyCompleted:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/CourseProgress'
+                        description: Kursus yang baru selesai (7 hari terakhir)
+                      totalCoursesEnrolled:
+                        type:  integer
+                        example: 5
+                      totalCoursesCompleted: 
+                        type: integer
+                        example: 2
+                      totalLearningHours:
+                        type: number
+                        format:  float
+                        example: 45.5
+                      overallProgress:
+                        type: number
+                        format: float
+                        example: 65.5
+                        description: Progress keseluruhan (%)
+                      weeklyActivity:
+                        type: array
+                        items:
+                          type: object
+                          properties: 
+                            date:
+                              type: string
+                              format: date
+                              example: "2025-12-08"
+                            hoursLearned:
+                              type:  number
+                              format: float
+                              example: 2.5
+                            lessonsCompleted:
+                              type: integer
+                              example: 3
+                        description: Aktivitas 7 hari terakhir
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /user/my-classes:
+    get:
+      tags:
+        - Learning Progress
+      summary: Get my classes
+      description: Mendapatkan semua kelas yang diikuti user
+      operationId: getMyClasses
+      parameters:
+        - name: status
+          in: query
+          description: Filter berdasarkan status
+          schema:
+            type: string
+            enum: [all, ongoing, completed, dropped]
+            default: all
+        - name: category
+          in: query
+          description: Filter berdasarkan kategori
+          schema:
+            type:  string
+            example: Web Development
+        - name: sortBy
+          in: query
+          description: Urutkan berdasarkan
+          schema:
+            type: string
+            enum: [enrolledDate, progress, title, lastAccessed]
+            default: lastAccessed
+        - name: sortOrder
+          in: query
+          description: Urutan sorting
+          schema:
+            type:  string
+            enum: [asc, desc]
+            default:  desc
+        - name: page
+          in: query
+          description: Nomor halaman
+          schema: 
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description:  Jumlah item per halaman
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+      responses:
+        '200': 
+          description: Data kelas berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: 
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/EnrolledCourse'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401': 
+          $ref: '#/components/responses/Unauthorized'
+
+  # ==========================================
+  # COURSES
+  # ==========================================
+  /courses:
+    get:
+      tags:
+        - Courses
+      summary: Get all courses
+      description: Mendapatkan daftar semua kursus yang tersedia
+      operationId:  getAllCourses
+      security:  []
+      parameters:
+        - name: category
+          in: query
+          description: Filter berdasarkan kategori
+          schema:
+            type:  string
+            example: Web Development
+        - name: level
+          in: query
+          description: Filter berdasarkan level kesulitan
+          schema:
+            type: string
+            enum: [beginner, intermediate, advanced]
+        - name: search
+          in: query
+          description: Pencarian berdasarkan judul atau deskripsi
+          schema: 
+            type: string
+            example: react
+        - name: minPrice
+          in: query
+          description:  Harga minimum
+          schema: 
+            type: number
+            example: 0
+        - name:  maxPrice
+          in: query
+          description: Harga maksimum
+          schema:
+            type: number
+            example: 500000
+        - name: rating
+          in: query
+          description: Rating minimal
+          schema: 
+            type: number
+            minimum: 0
+            maximum: 5
+            example: 4.0
+        - name: sortBy
+          in: query
+          description:  Urutkan berdasarkan
+          schema:
+            type:  string
+            enum: [popularity, rating, price, newest, title]
+            default: popularity
+        - name: sortOrder
+          in: query
+          description: Urutan sorting
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - name: page
+          in: query
+          description: Nomor halaman
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name:  limit
+          in: query
+          description: Jumlah item per halaman
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 12
+      responses:
+        '200':
+          description: Daftar kursus berhasil diambil
+          content:
+            application/json:
+              schema: 
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data: 
+                    type: array
+                    items:
+                      $ref:  '#/components/schemas/Course'
+                  pagination:
+                  $ref: '#/components/schemas/Pagination'
+                  filters:
+                    type: object
+                    description: Filter yang tersedia
+                    properties:
+                      categories:
+                        type: array
+                        items:
+                          type: string
+                        example:  ["Web Development", "Mobile Development", "Data Science", "AI & Machine Learning"]
+                      levels: 
+                        type: array
+                        items:
+                          type:  string
+                        example: ["beginner", "intermediate", "advanced"]
+                      priceRange:
+                        type:  object
+                        properties:
+                          min:
+                            type: number
+                            example: 0
+                          max:
+                            type:  number
+                            example: 999000
+
+  /courses/{courseId}:
+    get: 
+      tags:
+        - Courses
+      summary: Get course detail
+      description: Mendapatkan detail lengkap sebuah kursus
+      operationId: getCourseDetail
+      security: []
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          description: ID kursus
+          schema:
+            type: string
+            example: crs_1234567890
+      responses:
+        '200':
+          description: Detail kursus berhasil diambil
+          content:
+            application/json:
+              schema: 
+                type: object
+                properties: 
+                  success:
+                    type: boolean
+                    example:  true
+                  data:
+                    $ref: '#/components/schemas/CourseDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /courses/categories:
+    get:
+      tags:
+        - Courses
+      summary: Get all categories
+      description: Mendapatkan semua kategori kursus
+      operationId: getCourseCategories
+      security: []
+      responses:
+        '200':
+          description:  Kategori berhasil diambil
+          content:
+            application/json: 
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          example: cat_001
+                        name:
+                          type: string
+                          example:  Web Development
+                        slug:
+                          type: string
+                          example: web-development
+                        description:
+                          type: string
+                          example:  Belajar membuat website dan aplikasi web
+                        icon: 
+                          type: string
+                          format: uri
+                          example: https://cdn.vareway.com/icons/web-dev.svg
+                        totalCourses:
+                          type: integer
+                          example: 45
+                        isPopular:
+                          type: boolean
+                          example: true
+
+  # ==========================================
+  # RECOMMENDATIONS
+  # ==========================================
+  /courses/recommendations:
+    get: 
+      tags:
+        - Recommendations
+      summary: Get recommended courses
+      description: Mendapatkan rekomendasi kursus untuk user (personalized)
+      operationId: getRecommendedCourses
+      parameters:
+        - name: limit
+          in: query
+          description:  Jumlah rekomendasi
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 6
+        - name: excludeEnrolled
+          in: query
+          description: Exclude kursus yang sudah diikuti
+          schema:
+            type:  boolean
+            default: true
+      responses:
+        '200': 
+          description: Rekomendasi berhasil diambil
+          content:
+            application/json: 
+              schema:
+                type:  object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type:  array
+                    items:
+                      $ref: '#/components/schemas/Course'
+                  meta:
+                    type: object
+                    properties:
+                      recommendationType:
+                        type: string
+                        enum: [personalized, popular, related]
+                        example: personalized
+                        description: Jenis rekomendasi
+                      basedOn:
+                        type: string
+                        example: Your learning history and interests
+        '401':
+            $ref:  '#/components/responses/Unauthorized'
+
+  /courses/{courseId}/related:
+    get:
+      tags:
+        - Recommendations
+      summary: Get related courses
+      description: Mendapatkan kursus yang berkaitan dengan kursus tertentu
+      operationId:  getRelatedCourses
+      security: []
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 6
+      responses:
+        '200': 
+          description: Kursus terkait berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: 
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items: 
+                      $ref: '#/components/schemas/Course'
+
+  # ==========================================
+  # ENROLLMENT
+  # ==========================================
+  /courses/{courseId}/enroll: 
+    post:
+      tags: 
+        - Enrollment
+      summary: Enroll to course
+      description: Mendaftar ke sebuah kursus
+      operationId: enrollCourse
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: crs_1234567890
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: 
+                promoCode:
+                  type:  string
+                  example: PROMO2025
+                  description: Kode promo (opsional)
+                paymentMethod:
+                  type:  string
+                  enum: [credit_card, bank_transfer, e_wallet, free]
+                  example: credit_card
+      responses:
+        '201': 
+          description: Berhasil mendaftar ke kursus
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: 
+                    type: boolean
+                    example: true
+                  message: 
+                    type: string
+                    example: Berhasil mendaftar ke kursus
+                  data:
+                    type: object
+                    properties: 
+                      enrollmentId:
+                        type:  string
+                        example: enr_9876543210
+                      courseId:
+                        type: string
+                        example: crs_1234567890
+                      enrolledAt:
+                        type: string
+                        format: date-time
+                        example: "2025-12-14T10:30:00Z"
+                      status:
+                        type: string
+                        example: active
+                      paymentStatus:
+                        type: string
+                        enum: [pending, completed, failed, free]
+                        example: completed
+                      totalPaid:
+                        type: number
+                        example: 299000
+                      discount:
+                        type: number
+                        example: 50000
+        '400':
+          description: Sudah terdaftar atau kursus penuh
+          content:
+            application/json:
+              schema: 
+              $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: Anda sudah terdaftar di kursus ini
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /enrollments/{enrollmentId}:
+    get: 
+      tags:
+        - Enrollment
+      summary: Get enrollment detail
+      description: Mendapatkan detail enrollment
+      operationId: getEnrollmentDetail
+      parameters: 
+        - name: enrollmentId
+          in: path
+          required:  true
+          schema:
+            type: string
+      responses:
+        '200': 
+          description: Detail enrollment berhasil diambil
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: 
+                    type: boolean
+                    example: true
+                  data: 
+                    $ref: '#/components/schemas/EnrolledCourse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+
+  # ==========================================
+  # MODULES & LESSONS
+  # ==========================================
+  /courses/{courseId}/modules:
+    get:
+      tags:
+        - Modules & Lessons
+      summary: Get course modules
+      description: Mendapatkan semua modul dalam kursus
+      operationId: getCourseModules
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema: 
+            type: string
+      responses:
+        '200': 
+          description: Modul berhasil diambil
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: 
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Module'
+        '404':
+          $ref:  '#/components/responses/NotFound'
+
+  /modules/{moduleId}/lessons:
+    get:
+      tags:
+        - Modules & Lessons
+      summary: Get module lessons
+      description: Mendapatkan semua lesson dalam modul
+      operationId: getModuleLessons
+      parameters: 
+        - name: moduleId
+          in: path
+          required: true
+          schema:
+            type:  string
+      responses:
+        '200':
+          description: Lesson berhasil diambil
+          content:
+            application/json: 
+              schema:
+                type:  object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type:  array
+                    items:
+                      $ref: '#/components/schemas/Lesson'
+
+  /lessons/{lessonId}:
+    get:
+      tags:
+        - Modules & Lessons
+      summary: Get lesson detail
+      description: Mendapatkan detail lengkap sebuah lesson
+      operationId: getLessonDetail
+      parameters: 
+        - name: lessonId
+          in: path
+          required:  true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Detail lesson berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type:  boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/LessonDetail'
+        '401':
+          description: Belum enroll ke kursus ini
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ==========================================
+  # QUIZ & ASSESSMENT
+  # ==========================================
+  /courses/{courseId}/quiz:
+    get:
+      tags:
+        - Quiz & Assessment
+      summary: Get course quiz
+      description: Mendapatkan quiz untuk kursus
+      operationId: getCourseQuiz
+      parameters:
+        - name:  courseId
+          in: path
+          required: true
+          schema: 
+            type: string
+      responses:
+        '200':
+          description: Quiz berhasil diambil
+          content:
+            application/json:
+              schema: 
+                type: object
+                properties: 
+                  success:
+                    type: boolean
+                    example:  true
+                  data:
+                    $ref: '#/components/schemas/Quiz'
+        '401':
+          description: Belum enroll atau belum memenuhi syarat
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: Selesaikan semua lesson terlebih dahulu
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /modules/{moduleId}/quiz:
+    get:
+      tags:
+        - Quiz & Assessment
+      summary:  Get module quiz
+      description:  Mendapatkan quiz untuk modul tertentu
+      operationId:  getModuleQuiz
+      parameters:
+        - name: moduleId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses: 
+        '200':
+          description:  Quiz berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type:  boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Quiz'
+
+  /quiz/{quizId}/start:
+    post:
+      tags:
+        - Quiz & Assessment
+      summary: Start quiz
+      description: Memulai quiz (mendapat session)
+      operationId: startQuiz
+      parameters:
+        - name: quizId
+          in: path
+          required: true
+          schema:
+            type:  string
+      responses:
+        '200':
+          description: Quiz berhasil dimulai
+          content:
+            application/json: 
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Quiz dimulai
+                  data:
+                    type:  object
+                    properties:
+                      quizSessionId:
+                        type: string
+                        example: qsess_123456
+                      startedAt:
+                        type: string
+                        format: date-time
+                      expiresAt:
+                        type: string
+                        format: date-time
+                        description: Waktu expired (berdasarkan time limit)
+                      questions:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Question'
+
+  /quiz/{quizId}/submit:
+    post:
+      tags:
+        - Quiz & Assessment
+      summary: Submit quiz
+      description: Submit jawaban quiz dan mendapat hasil
+      operationId: submitQuiz
+      parameters:
+        - name: quizId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: 
+              type: object
+              required:
+                - quizSessionId
+                - answers
+              properties:
+                quizSessionId:
+                  type: string
+                  example:  qsess_123456
+                answers:
+                  type: array
+                  items:
+                    type: object
+                    required: 
+                      - questionId
+                      - answer
+                    properties:
+                      questionId:
+                        type: string
+                        example: q_001
+                      answer:
+                        oneOf:
+                          - type:  string
+                          - type: array
+                            items:
+                              type: string
+                        description: Jawaban (string untuk single choice, array untuk multiple choice)
+                        example:  A JavaScript library
+      responses:
+        '200': 
+          description: Quiz berhasil disubmit
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: 
+                    type: boolean
+                    example: true
+                  message: 
+                    type: string
+                    example: Quiz berhasil diselesaikan
+                  data: 
+                    type: object
+                    properties:
+                      quizResultId:
+                        type: string
+                        example: qres_789012
+                      score:
+                        type: number
+                        format: float
+                        example: 85.5
+                        description: Skor yang didapat
+                      maxScore:
+                        type: number
+                        example: 100
+                      totalQuestions:
+                        type: integer
+                        example: 20
+                      correctAnswers:
+                        type:  integer
+                        example: 17
+                      wrongAnswers:
+                        type:  integer
+                        example: 3
+                      passed:
+                        type: boolean
+                        example: true
+                        description: Apakah lulus (berdasarkan passing score)
+                      passingScore:
+                        type:  number
+                        example: 70
+                      completedAt:
+                        type:  string
+                        format: date-time
+                      timeTaken:
+                        type: integer
+                        example: 2450
+                        description: Waktu yang digunakan (detik)
+                      certificateUrl:
+                        type:  string
+                        format: uri
+                        nullable: true
+                        example: https://cdn.vareway.com/certificates/cert_abc123.pdf
+                        description: URL sertifikat (jika lulus)
+                      review:
+                        type: array
+                        description: Review jawaban
+                        items:
+                          type: object
+                          properties:
+                            questionId: 
+                              type: string
+                            question:
+                              type: string
+                            yourAnswer:
+                              type: string
+                            correctAnswer:
+                              type:  string
+                            isCorrect:
+                              type:  boolean
+                            explanation:
+                              type: string
+                              description: Penjelasan jawaban
+        '400':
+          description: Quiz session invalid atau expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /quiz/results/{quizResultId}:
+    get: 
+      tags:
+        - Quiz & Assessment
+      summary: Get quiz result detail
+      description: Mendapatkan detail hasil quiz
+      operationId: getQuizResult
+      parameters:
+        - name: quizResultId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200': 
+          description:  Hasil quiz berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: 
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties: 
+                      quizResultId:
+                        type: string
+                      quizTitle:
+                        type: string
+                      courseTitle:
+                        type: string
+                      score:
+                        type: number
+                      passed:
+                        type: boolean
+                      completedAt:
+                        type:  string
+                        format: date-time
+                      certificateUrl:
+                        type:  string
+                        nullable: true
+                      review:
+                        type: array
+                        items:
+                          type: object
+
+  /user/quiz-history:
+    get:
+      tags:
+        - Quiz & Assessment
+      summary: Get quiz history
+      description: Mendapatkan riwayat quiz user
+      operationId: getQuizHistory
+      parameters:
+        - name: courseId
+          in: query
+          description: Filter by course ID
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in:  query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Riwayat quiz berhasil diambil
+          content:
+            application/json:
+              schema: 
+                type: object
+                properties: 
+                  success:
+                    type: boolean
+                    example:  true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties: 
+                        quizResultId:
+                          type: string
+                        quizTitle: 
+                          type: string
+                        courseTitle:
+                          type:  string
+                        score:
+                          type: number
+                        passed:
+                          type: boolean
+                        completedAt:
+                          type: string
+                          format: date-time
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+  # ==========================================
+  # NOTIFICATIONS
+  # ==========================================
+  /notifications:
+    get:
+      tags:
+        - Notifications
+      summary: Get all notifications
+      description: |
+        Mengambil semua notifikasi user dengan pagination dan filter.
+        
+        **Fitur:**
+        - Pagination
+        - Filter by type, status (read/unread)
+        - Sorting by date
+      operationId: getAllNotifications
+      parameters:
+        - name: status
+          in: query
+          description: Filter berdasarkan status baca
+          schema:
+            type: string
+            enum: [all, read, unread]
+            default: all
+          example: unread
+        - name: type
+          in: query
+          description:  Filter berdasarkan tipe notifikasi
+          schema: 
+            type: string
+            enum: [all, course, quiz, certificate, announcement, reminder, social]
+            default: all
+          example: course
+        - name: page
+          in: query
+          description: Nomor halaman
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          example: 1
+        - name: limit
+          in: query
+          description:  Jumlah notifikasi per halaman
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+          example: 20
+        - name: sortBy
+          in: query
+          description: Urutkan berdasarkan
+          schema:
+            type: string
+            enum: [createdAt, updatedAt]
+            default: createdAt
+        - name: sortOrder
+          in: query
+          description: Urutan sorting
+          schema:
+            type:  string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200': 
+          description: Notifikasi berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: 
+                  success:
+                    type: boolean
+                    example: true
+                  data: 
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Notification'
+                  pagination: 
+                    $ref: '#/components/schemas/Pagination'
+                  meta: 
+                    type: object
+                    properties:
+                      totalUnread:
+                        type: integer
+                        example: 5
+                        description: Total notifikasi yang belum dibaca
+                      totalRead:
+                        type: integer
+                        example: 15
+                        description: Total notifikasi yang sudah dibaca
+              examples:
+                successResponse:
+                  value: 
+                    success: true
+                    data: 
+                      - id: "notif_001"
+                        type: "course"
+                        title: "Pemberitahuan"
+                        message: "Kursus Front-End Developer telah berhasil di-enroll!"
+                        icon: "https://cdn.vareway.com/icons/course.svg"
+                        isRead: false
+                        createdAt: "2025-12-14T10:30:00Z"
+                        relatedId: "crs_123"
+                        relatedType: "course"
+                        actionUrl: "/courses/crs_123"
+                      - id: "notif_002"
+                        type: "quiz"
+                        title: "Pemberitahuan"
+                        message: "Quiz React Basics telah selesai!  Nilai Anda: 85"
+                        icon: "https://cdn.vareway.com/icons/quiz.svg"
+                        isRead: false
+                        createdAt: "2025-12-14T09:15:00Z"
+                        relatedId: "quiz_456"
+                        relatedType: "quiz"
+                        actionUrl: "/quiz/results/qres_789"
+                    pagination:
+                      currentPage: 1
+                      totalPages: 3
+                      totalItems: 50
+                      itemsPerPage: 20
+                      hasNextPage: true
+                      hasPreviousPage: false
+                    meta:
+                      totalUnread: 5
+                      totalRead: 45
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /notifications/unread-count:
+    get:
+      tags:
+        - Notifications
+      summary: Get unread notification count
+      description: |
+        Mengambil jumlah notifikasi yang belum dibaca.
+        
+        **Digunakan untuk:**
+        - Badge notifikasi di navbar
+        - Counter di icon bell
+      operationId: getUnreadCount
+      responses:
+        '200':
+          description: Jumlah unread berhasil diambil
+          content:
+            application/json: 
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      unreadCount:
+                        type:  integer
+                        example: 5
+                        description: Total notifikasi belum dibaca
+                      byType:
+                        type: object
+                        description: Breakdown berdasarkan tipe
+                        properties:
+                          course:
+                            type: integer
+                            example: 2
+                          quiz:
+                            type: integer
+                            example: 1
+                          certificate:
+                            type: integer
+                            example: 1
+                          announcement:
+                            type: integer
+                            example:  1
+              examples:
+                successResponse: 
+                  value:
+                    success: true
+                    data: 
+                      unreadCount: 5
+                      byType:
+                        course: 2
+                        quiz: 1
+                        certificate: 1
+                        announcement:  1
+        '401': 
+          $ref: '#/components/responses/Unauthorized'
+
+  /notifications/{notificationId}:
+    get: 
+      tags:
+        - Notifications
+      summary: Get notification detail
+      description:  Mengambil detail satu notifikasi
+      operationId: getNotificationDetail
+      parameters:
+        - name:  notificationId
+          in: path
+          required: true
+          description: ID notifikasi
+          schema:
+            type: string
+          example: notif_001
+      responses: 
+        '200':
+          description:  Detail notifikasi berhasil diambil
+          content:
+            application/json:
+              schema: 
+                type: object
+                properties: 
+                  success:
+                    type: boolean
+                    example:  true
+                  data:
+                    $ref: '#/components/schemas/NotificationDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    delete:
+      tags:
+        - Notifications
+      summary: Delete notification
+      description: |
+        Menghapus satu notifikasi. 
+        
+        **Note:** 
+        - Soft delete (data tidak hilang, hanya di-hide)
+        - Bisa di-restore dalam 30 hari
+      operationId: deleteNotification
+      parameters:
+        - name:  notificationId
+          in: path
+          required: true
+          description: ID notifikasi
+          schema:
+            type: string
+          example: notif_001
+      responses:
+        '200':
+          description: Notifikasi berhasil dihapus
+          content:
+            application/json: 
+              schema:
+                type:  object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example:  Notifikasi berhasil dihapus
+              examples:
+                successResponse: 
+                  value:
+                    success: true
+                    message:  Notifikasi berhasil dihapus
+        '404': 
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /notifications/{notificationId}/read:
+    put:
+      tags:
+        - Notifications
+      summary: Mark notification as read
+      description: |
+        Tandai satu notifikasi sebagai sudah dibaca.
+        
+        **Efek:**
+        - isRead berubah dari false → true
+        - readAt di-set ke waktu sekarang
+        - Unread count berkurang 1
+      operationId: markAsRead
+      parameters:
+        - name: notificationId
+          in:  path
+          required: true
+          description: ID notifikasi
+          schema:
+            type: string
+          example: notif_001
+      responses:
+        '200': 
+          description: Notifikasi berhasil ditandai sebagai sudah dibaca
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: 
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Notifikasi berhasil ditandai sebagai sudah dibaca
+                  data:
+                    type:  object
+                    properties:
+                      id:
+                        type:  string
+                        example: notif_001
+                      isRead:
+                        type: boolean
+                        example: true
+                      readAt:
+                        type: string
+                        format: date-time
+                        example: "2025-12-14T16:45:00Z"
+              examples:
+                successResponse: 
+                  value:
+                    success: true
+                    message:  Notifikasi berhasil ditandai sebagai sudah dibaca
+                    data:
+                      id: notif_001
+                      isRead: true
+                      readAt:  "2025-12-14T16:45:00Z"
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401': 
+          $ref: '#/components/responses/Unauthorized'
+
+  /notifications/mark-all-read:
+    put:
+      tags:
+        - Notifications
+      summary: Mark all notifications as read
+      description: |
+        Tandai SEMUA notifikasi sebagai sudah dibaca sekaligus.
+        
+        **Fungsi tombol:** "Tandai telah dibaca" (di screenshot)
+        
+        **Efek:**
+        - Semua notifikasi yang isRead=false → berubah jadi true
+        - Unread count jadi 0
+      operationId: markAllAsRead
+      responses:
+        '200':
+          description: Semua notifikasi berhasil ditandai sebagai sudah dibaca
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type:  boolean
+                    example: true
+                  message:
+                    type: string
+                    example:  Semua notifikasi berhasil ditandai sebagai sudah dibaca
+                  data:
+                    type: object
+                    properties:
+                      totalMarkedAsRead:
+                        type: integer
+                        example: 5
+                        description:  Jumlah notifikasi yang ditandai sebagai dibaca
+              examples:
+                successResponse: 
+                  value:
+                    success: true
+                    message:  Semua notifikasi berhasil ditandai sebagai sudah dibaca
+                    data:
+                      totalMarkedAsRead: 5
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /notifications/delete-all:
+    delete:
+      tags:
+        - Notifications
+      summary: Delete all notifications
+      description: |
+        Menghapus semua notifikasi user.
+        
+        **Warning:** Ini akan menghapus semua notifikasi (termasuk yang belum dibaca)
+      operationId: deleteAllNotifications
+      parameters:
+        - name: confirm
+          in: query
+          required: true
+          description: Konfirmasi hapus (harus "yes")
+          schema:
+            type:  string
+            enum: [yes]
+          example: yes
+      responses: 
+        '200':
+          description:  Semua notifikasi berhasil dihapus
+          content:
+            application/json: 
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Semua notifikasi berhasil dihapus
+                  data:
+                    type:  object
+                    properties:
+                      totalDeleted:
+                        type:  integer
+                        example: 50
+        '400':
+          description: Konfirmasi tidak valid
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missingConfirm:
+                  value: 
+                    success: false
+                    message: Parameter "confirm" harus berisi "yes"
+        '401': 
+          $ref: '#/components/responses/Unauthorized'
+
+
+
+  # ==========================================
+  # TUTORIALS
+  # ==========================================
+  /tutorials: 
+    get:
+      tags: 
+        - Tutorials
+      summary: Get all tutorials
+      description:  Mendapatkan semua tutorial platform
+      operationId: getAllTutorials
+      security: []
+      responses:
+        '200':
+          description: Tutorial berhasil diambil
+          content:
+            application/json: 
+              schema:
+                type:  object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type:  array
+                    items:
+                      type: object
+                      properties: 
+                        id:
+                          type: string
+                          example: tut_001
+                        title: 
+                          type: string
+                          example:  Cara Mendaftar Kursus
+                        description: 
+                          type: string
+                        type:
+                          type: string
+                          enum: [video, article]
+                          example: video
+                        duration: 
+                          type: string
+                          example: "05:30"
+                        url:
+                          type: string
+                          format: uri
+                        thumbnail:
+                          type: string
+                          format: uri
+                        order:
+                          type: integer
+
+# ============================================
+# COMPONENTS
+# ============================================
+components:
+  securitySchemes:
+    BearerAuth:
+      type:  http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT token yang didapat setelah login. 
+        
+        Contoh penggunaan:
+        ```
+        Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9... 
+        ```
+
+  schemas:
+    # ==========================================
+    # COURSE SCHEMAS
+    # ==========================================
+    Course:
+      type: object
+      properties: 
+        id:
+          type: string
+          example: crs_1234567890
+        title:
+          type: string
+          example: Front-End Developer
+        subtitle:
+          type: string
+          nullable: true
+          example:  REACT APP
+        slug:
+          type: string
+          example: front-end-developer-react
+        description:
+          type: string
+          example: Belajar membuat aplikasi web modern dengan React
+        shortDescription:
+          type: string
+          example: Master React untuk menjadi front-end developer profesional
+        category:
+          type: string
+          example: Web Development
+        thumbnail:
+          type: string
+          format: uri
+          example: https://cdn.vareway.com/courses/frontend-react.jpg
+        instructor:
+          type: object
+          properties:
+            id:
+              type: string
+              example: ins_001
+            name:
+              type:  string
+              example: John Smith
+            title:
+              type: string
+              example: Senior Frontend Developer
+            avatar:
+              type: string
+              format: uri
+              example: https://cdn.vareway.com/instructors/john. jpg
+            bio:
+              type: string
+              example: 10+ years experience in web development
+        level:
+          type: string
+          enum: [beginner, intermediate, advanced]
+          example: intermediate
+        duration:
+          type:  string
+          example: 40 hours
+        rating:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 5
+          example: 4.8
+        totalReviews:
+          type: integer
+          example: 1245
+        totalStudents:
+          type: integer
+          example: 8750
+        price:
+          type:  number
+          example: 299000
+          description: Harga dalam Rupiah
+        originalPrice:
+          type: number
+          nullable: true
+          example: 499000
+          description: Harga asli sebelum diskon
+        discount:
+          type: number
+          nullable: true
+          example: 40
+          description: Per
+
+  # ===============
+  # CourseProgres
+  # ===============
+    EnrolledCourse:
+      type: object
+      properties:
+        enrollmentId:
+          type: string
+          example: enr_9876543210
+        course:
+          $ref: '#/components/schemas/Course'
+        enrolledAt:
+          type: string
+          format: date-time
+          example: "2025-12-14T10:30:00Z"
+        status:
+          type: string
+          example: active
+        paymentStatus:
+          type: string
+          enum: [pending, completed, failed, free]
+          example: completed
+        totalPaid:
+          type: number
+          example: 299000
+        progress:
+          type: object
+          properties:
+            currentProgress:
+              type: number
+              format: float
+              example: 72.5
+              description: Progress keseluruhan (%)
+            completedLessons:
+              type: integer
+              example: 18
+            totalLessons:
+              type: integer
+              example: 45
+            lastAccessedAt:
+              type: string
+              format: date-time
+            nextLesson:
+              type: object
+              properties:
+                id:
+                  type: string
+                  example: les_046
+                title:
+                  type: string
+                  example: Advanced React Hooks
+                moduleTitle:
+                  type: string
+                  example: React Advanced
+
+  # ==========================================
+  # NOTIFICATION SCHEMAS
+  # ==========================================
+    Notification:
+      type: object
+      properties:
+        id: 
+          type: string
+          example: notif_001
+          description: ID notifikasi (unique)
+        userId:
+          type: string
+          example: usr_123
+          description: ID user penerima notifikasi
+        type: 
+          type: string
+          enum: [course, quiz, certificate, announcement, reminder, social]
+          example: course
+          description: Jenis notifikasi
+        title:
+          type:  string
+          example:  Pemberitahuan
+          description: Judul notifikasi (tampil di UI)
+        message:
+          type: string
+          example: Kursus Front-End Developer telah berhasil di-enroll! 
+          description: Isi pesan notifikasi
+        icon: 
+          type: string
+          format: uri
+          example: https://cdn.vareway.com/icons/course.svg
+          description: URL icon notifikasi
+        image:
+          type: string
+          format: uri
+          nullable: true
+          example: https://cdn.vareway.com/courses/thumbnail.jpg
+          description: URL gambar (opsional)
+        isRead:
+          type: boolean
+          example: false
+          description: Apakah sudah dibaca
+        readAt:
+          type:  string
+          format: date-time
+          nullable: true
+          example: null
+          description: Waktu dibaca (null jika belum dibaca)
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-12-14T10:30:00Z"
+          description:  Waktu notifikasi dibuat
+        relatedId:
+          type: string
+          nullable: true
+          example: crs_123
+          description: ID resource terkait (courseId, quizId, dll)
+        relatedType: 
+          type: string
+          nullable: true
+          example: course
+          description: Tipe resource terkait
+        actionUrl:
+          type: string
+          nullable: true
+          example:  /courses/crs_123
+          description: URL tujuan saat notifikasi diklik
+        actionText:
+          type: string
+          nullable: true
+          example:  Lihat Kursus
+          description: Text button action
+        priority:
+          type: string
+          enum: [low, normal, high, urgent]
+          example: normal
+          description: Priority notifikasi
+        expiresAt:
+          type:  string
+          format: date-time
+          nullable: true
+          example: "2025-12-21T10:30:00Z"
+          description: Waktu notifikasi expired (auto-delete)
+
+    NotificationDetail:
+      allOf:
+        - $ref:  '#/components/schemas/Notification'
+        - type: object
+          properties:
+            metadata:
+              type: object
+              description: Data tambahan tergantung jenis notifikasi
+              example:
+                courseTitle: "Front-End Developer"
+                courseThumbnail: "https://..."
+                instructorName: "John Smith"
+    NotificationPreference:
+      type:  object
+      properties:
+        enabled:
+          type: boolean
+          example: true
+          description:  Apakah notifikasi jenis ini diaktifkan
+        channels:
+          type: array
+          items:
+            type: string
+            enum: [in-app, email, push]
+          example:  ["in-app", "email"]
+          description: Channel mana yang diaktifkan
+
+   
