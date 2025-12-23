@@ -1,0 +1,196 @@
+openapi: 3.0.0
+
+info:
+  title: Learning Path Catalog API
+  version: 1.0.0
+  description: >
+    API untuk tampilan Catalog Learning Path.
+    Digunakan oleh Backend untuk menampilkan data learning path,
+    search, filter, detail, delete, dan navbar user setelah login.
+
+servers:
+  - url: http://localhost:8000/api
+    description: Local Development Server
+  - url: https://api.vareway.com/v1
+    description: Production Server
+
+paths:
+
+  # GET ALL, SEARCH, FILTER KATEGORI, FILTER LEVEL, KOMBINASI
+  /learning-path:
+    get:
+      summary: Get semua learning path + search + filter kategori + filter level
+      tags:
+        - Learning Path
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Keyword pencarian learning path (search bar navbar)
+
+        - in: query
+          name: category
+          schema:
+            type: string
+          description: Filter kategori (frontend, backend, cyber security, dll)
+
+        - in: query
+          name: level
+          schema:
+            type: string
+            enum: [beginner, intermediate, advanced]
+          description: Filter tingkat learning path
+
+      responses:
+        '200':
+          description: Data learning path berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LearningPath'
+
+
+  # GET LEARNING PATH DETAIL (TOMBOL DETAIL)
+  
+  /learning-path/{id}:
+    get:
+      summary: Get detail learning path berdasarkan ID
+      tags:
+        - Learning Path
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Detail learning path ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearningPathDetail'
+        '404':
+          description: Learning path tidak ditemukan
+
+    
+    # DELETE JASA / LEARNING PATH
+
+    delete:
+      summary: Hapus learning path berdasarkan ID
+      tags:
+        - Learning Path
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Learning path berhasil dihapus
+
+  
+  # 8. NAVBAR USER (FOTO + NAMA)
+
+  /user/profile:
+    get:
+      summary: Ambil data user untuk navbar (foto dan nama)
+      tags:
+        - User
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Data user berhasil diambil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+
+
+# COMPONENTS
+
+components:
+
+  # SECURITY
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  # SCHEMAS
+  schemas:
+
+    # USER (NAVBAR)
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        photo:
+          type: string
+          format: uri
+          example: https://cdn.example.com/user/profile.png
+
+    # LEARNING PATH (CARD / LIST)
+    LearningPath:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        thumbnail:
+          type: string
+          format: uri
+          example: https://cdn.example.com/images/python.png
+        category:
+          type: string
+          example: Frontend
+        level:
+          type: string
+          enum: [beginner, intermediate, advanced]
+        rating:
+          type: number
+          example: 4.5
+
+    # LEARNING PATH DETAIL
+    LearningPathDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        thumbnail:
+          type: string
+          format: uri
+        category:
+          type: string
+        level:
+          type: string
+        modules:
+          type: array
+          items:
+            type: object
+            properties:
+              module_id:
+                type: integer
+              module_title:
+                type: string
+              duration:
+                type: string
+                example: 30 minutes
