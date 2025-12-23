@@ -1,0 +1,364 @@
+openapi: 3.0.0
+info:
+  title: API Platform Pembelajaran (Dikelompokkan Berdasarkan Desain Figma)
+  version: 1.0.0
+  description: "Dokumentasi Swagger dengan endpoint yang dikelompokkan berdasarkan fungsi desain menggunakan tag."
+paths:
+  /courses/{courseId}/next:
+    get:
+      summary: Ambil konten selanjutnya
+      tags: [Kemajuan & Navigasi]
+      parameters:
+        - name: courseId
+          in: path
+          description: ID kursus
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Item berikutnya
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NavigationResult'
+
+  /courses/{courseId}/previous:
+    get:
+      summary: Ambil konten sebelumnya
+      tags: [Kemajuan & Navigasi]
+      parameters:
+        - name: courseId
+          in: path
+          description: ID kursus
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Item sebelumnya
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NavigationResult'
+
+  /courses/{courseId}/search:
+    get:
+      summary: Cari konten
+      tags: [Pencarian]
+      parameters:
+        - name: courseId
+          in: path
+          description: ID kursus
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Hasil pencarian
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SearchResult'
+
+  /learning-paths/{id}:
+    get:
+      summary: Dapatkan detail jalur pembelajaran
+      tags: [Detail Jalur Pembelajaran]
+      parameters:
+        - name: id
+          in: path
+          description: ID jalur pembelajaran
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Detail jalur pembelajaran
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearningPathDetail'
+
+  /learning-paths/{id}/modules:
+    get:
+      summary: Ambil modul dalam jalur pembelajaran
+      tags: [Langkah Jalur Pembelajaran]
+      parameters:
+        - name: id
+          in: path
+          description: ID jalur pembelajaran
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Daftar modul
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Module'
+
+  /modules/{moduleId}/items:
+    get:
+      summary: Ambil item konten dalam modul
+      tags: [Modul & Konten]
+      parameters:
+        - name: moduleId
+          in: path
+          description: ID modul
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Daftar konten
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ContentItem'
+
+  /modules/{moduleId}/items/{itemId}:
+    get:
+      summary: Ambil detail item konten
+      tags: [Modul & Konten]
+      parameters:
+        - name: moduleId
+          in: path
+          description: ID modul
+          required: true
+          schema:
+            type: string
+        - name: itemId
+          in: path
+          description: ID item konten
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Detail konten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentDetail'
+
+  /users/{userId}/courses:
+    get:
+      summary: Ambil daftar kursus yang diikuti pengguna
+      tags: [Dasbor & Profil]
+      parameters:
+        - name: userId
+          in: path
+          description: ID pengguna
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Daftar kursus
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CourseSummary'
+
+  /users/{userId}/learning-paths/{id}/start:
+    post:
+      summary: Mulai jalur pembelajaran
+      tags: [Detail Jalur Pembelajaran]
+      parameters:
+        - name: userId
+          in: path
+          description: ID pengguna
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          description: ID jalur pembelajaran
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Jalur pembelajaran dimulai
+
+  /users/{userId}/profile:
+    get:
+      summary: Ambil informasi profil pengguna
+      tags: [Dasbor & Profil]
+      parameters:
+        - name: userId
+          in: path
+          description: ID pengguna
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Profil pengguna
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+
+  /users/{userId}/progress:
+    post:
+      summary: Perbarui kemajuan
+      tags: [Kemajuan & Navigasi]
+      parameters:
+        - name: userId
+          in: path
+          description: ID pengguna
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProgressUpdate'
+      responses:
+        '200':
+          description: Kemajuan diperbarui
+
+components:
+  schemas:
+    ContentDetail:
+      type: object
+      properties:
+        content:
+          type: string
+        title:
+          type: string
+        type:
+          type: string
+
+    ContentItem:
+      type: object
+      properties:
+        item_id:
+          type: string
+        title:
+          type: string
+        type:
+          type: string
+
+    CourseSummary:
+      type: object
+      properties:
+        course_id:
+          type: string
+        duration_hours:
+          type: integer
+        level:
+          type: string
+        modules:
+          type: integer
+        progress_percent:
+          type: integer
+        students_enrolled:
+          type: integer
+        title:
+          type: string
+
+    LearningPathDetail:
+      type: object
+      properties:
+        duration_hours:
+          type: integer
+        id:
+          type: string
+        level:
+          type: string
+        step_number:
+          type: integer
+        step_title:
+          type: string
+        students_enrolled:
+          type: integer
+        title:
+          type: string
+        topic:
+          type: string
+        total_steps:
+          type: integer
+
+    Module:
+      type: object
+      properties:
+        articles_count:
+          type: integer
+        description:
+          type: string
+        estimated_time_minutes:
+          type: integer
+        module_id:
+          type: string
+        title:
+          type: string
+
+    NavigationResult:
+      type: object
+      properties:
+        item_id:
+          type: string
+        module_id:
+          type: string
+
+    ProgressUpdate:
+      type: object
+      properties:
+        course_id:
+          type: string
+        item_id:
+          type: string
+        module_id:
+          type: string
+        status:
+          type: string
+
+    SearchResult:
+      type: object
+      properties:
+        item_id:
+          type: string
+        module_id:
+          type: string
+        title:
+          type: string
+
+    UserProfile:
+      type: object
+      properties:
+        joined_at:
+          type: string
+        location:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+        total_courses:
+          type: integer
+        total_learning_hours:
+          type: integer
+        xp:
+          type: integer
+
+tags:
+  - name: Dasbor & Profil
+  - name: Detail Jalur Pembelajaran
+  - name: Langkah Jalur Pembelajaran
+  - name: Modul & Konten
+  - name: Kemajuan & Navigasi
+  - name: Pencarian
