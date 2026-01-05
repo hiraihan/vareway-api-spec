@@ -4,22 +4,23 @@ info:
   title: Learning Path Catalog API
   version: 1.0.0
   description: >
-    API untuk tampilan Catalog Learning Path.
-    Digunakan oleh Backend untuk menampilkan data learning path,
-    search, filter, detail, delete, dan navbar user setelah login.
+    API ini digunakan untuk tampilan Catalog Learning Path.
+    Digunakan untuk menampilkan list learning path, search, filter,
+    detail learning path, delete (admin), dan navbar user setelah login.
 
 servers:
-  - url: http://localhost:8000/api
-    description: Local Development Server
   - url: https://api.vareway.com/v1
     description: Production Server
+  - url: http://localhost:3000/v1
+    description: Development Server
 
 paths:
 
-  # GET ALL, SEARCH, FILTER KATEGORI, FILTER LEVEL, KOMBINASI
+  # GET ALL + SEARCH + FILTER
+  
   /learning-path:
     get:
-      summary: Get semua learning path + search + filter kategori + filter level
+      summary: Get all learning path + search + filter kategori + filter level
       tags:
         - Learning Path
       parameters:
@@ -27,13 +28,13 @@ paths:
           name: search
           schema:
             type: string
-          description: Keyword pencarian learning path (search bar navbar)
+          description: Search learning path berdasarkan judul (search bar navbar)
 
         - in: query
           name: category
           schema:
             type: string
-          description: Filter kategori (frontend, backend, cyber security, dll)
+          description: Filter kategori (Frontend, Backend, Cyber Security, dll)
 
         - in: query
           name: level
@@ -41,6 +42,12 @@ paths:
             type: string
             enum: [beginner, intermediate, advanced]
           description: Filter tingkat learning path
+
+        - in: query
+          name: id
+          schema:
+            type: integer
+          description: Parameter tambahan ID untuk filter tertentu
 
       responses:
         '200':
@@ -52,8 +59,8 @@ paths:
                 items:
                   $ref: '#/components/schemas/LearningPath'
 
-
-  # GET LEARNING PATH DETAIL (TOMBOL DETAIL)
+  
+  # GET DETAIL LEARNING PATH
   
   /learning-path/{id}:
     get:
@@ -66,6 +73,7 @@ paths:
           required: true
           schema:
             type: integer
+          description: ID learning path yang diklik
       responses:
         '200':
           description: Detail learning path ditemukan
@@ -77,10 +85,10 @@ paths:
           description: Learning path tidak ditemukan
 
     
-    # DELETE JASA / LEARNING PATH
-
+    # DELETE LEARNING PATH (ADMIN)
+    
     delete:
-      summary: Hapus learning path berdasarkan ID
+      summary: Delete learning path berdasarkan ID
       tags:
         - Learning Path
       security:
@@ -96,11 +104,11 @@ paths:
           description: Learning path berhasil dihapus
 
   
-  # 8. NAVBAR USER (FOTO + NAMA)
-
+  # NAVBAR USER
+  
   /user/profile:
     get:
-      summary: Ambil data user untuk navbar (foto dan nama)
+      summary: Get data user untuk navbar (foto dan nama)
       tags:
         - User
       security:
@@ -120,17 +128,14 @@ paths:
 
 components:
 
-  # SECURITY
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
 
-  # SCHEMAS
   schemas:
 
-    # USER (NAVBAR)
     User:
       type: object
       properties:
@@ -140,10 +145,8 @@ components:
           type: string
         photo:
           type: string
-          format: uri
-          example: https://cdn.example.com/user/profile.png
+          example: https://cdn.example.com/user.png
 
-    # LEARNING PATH (CARD / LIST)
     LearningPath:
       type: object
       properties:
@@ -153,19 +156,14 @@ components:
           type: string
         thumbnail:
           type: string
-          format: uri
-          example: https://cdn.example.com/images/python.png
+          example: https://cdn.example.com/thumbnail.png
         category:
           type: string
-          example: Frontend
         level:
           type: string
-          enum: [beginner, intermediate, advanced]
         rating:
           type: number
-          example: 4.5
 
-    # LEARNING PATH DETAIL
     LearningPathDetail:
       type: object
       properties:
@@ -177,7 +175,6 @@ components:
           type: string
         thumbnail:
           type: string
-          format: uri
         category:
           type: string
         level:
@@ -193,4 +190,3 @@ components:
                 type: string
               duration:
                 type: string
-                example: 30 minutes
