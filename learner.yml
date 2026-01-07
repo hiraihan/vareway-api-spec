@@ -4,8 +4,6 @@ info:
   title: VAREWAY Learning Platform API
   description: |
     # VAREWAY Learning Platform API Documentation
-
-
     
     ## Fitur Utama: 
     - Kursus & Rekomendasi
@@ -36,8 +34,8 @@ tags:
     description: Konten pembelajaran (modul dan lesson)
   - name: Quiz & Assessment
     description: Quiz, ujian, dan penilaian
-  - name: Tutorials
-    description: Tutorial dan panduan platform
+  - name: Notifications
+    description: Sistem notifikasi dan pemberitahuan
     
 security:
   - BearerAuth: []
@@ -280,7 +278,7 @@ paths:
                     items:
                       $ref:  '#/components/schemas/Course'
                   pagination:
-                  $ref: '#/components/schemas/Pagination'
+                    $ref: '#/components/schemas/Pagination'
                   filters:
                     type: object
                     description: Filter yang tersedia
@@ -436,7 +434,7 @@ paths:
                         type: string
                         example: Your learning history and interests
         '401':
-            $ref:  '#/components/responses/Unauthorized'
+          $ref:  '#/components/responses/Unauthorized'
 
   /courses/{courseId}/related:
     get:
@@ -549,8 +547,8 @@ paths:
           description: Sudah terdaftar atau kursus penuh
           content:
             application/json:
-              schema: 
-              $ref: '#/components/schemas/ErrorResponse'
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
               example:
                 success: false
                 message: Anda sudah terdaftar di kursus ini
@@ -684,6 +682,79 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /lessons/{lessonId}/complete:
+    post:
+      tags:
+        - Modules & Lessons
+      summary: Mark lesson as completed
+      description: Menandai lesson sebagai selesai dan update progress
+      operationId: completLesson
+      parameters:
+        - name: lessonId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                timeSpent:
+                  type: integer
+                  description: Waktu yang dihabiskan (dalam detik)
+                  example: 1200
+                notes:
+                  type: string
+                  description: Catatan user (opsional)
+      responses:
+        '200':
+          description: Lesson berhasil ditandai selesai
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Lesson berhasil diselesaikan
+                  data:
+                    type: object
+                    properties:
+                      lessonId:
+                        type: string
+                      completedAt:
+                        type: string
+                        format: date-time
+                      courseProgress:
+                        type: number
+                        format: float
+                        example: 75.5
+                        description: Progress kursus setelah lesson ini selesai
+                      nextLesson:
+                        type: object
+                        nullable: true
+                        properties:
+                          id:
+                            type: string
+                          title:
+                            type: string
+        '400':
+          description: Lesson sudah diselesaikan sebelumnya
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
 
@@ -1168,7 +1239,6 @@ paths:
       summary: Get unread notification count
       description: |
         Mengambil jumlah notifikasi yang belum dibaca.
-        
         **Digunakan untuk:**
         - Badge notifikasi di navbar
         - Counter di icon bell
@@ -1457,59 +1527,6 @@ paths:
         '401': 
           $ref: '#/components/responses/Unauthorized'
 
-
-
-  # ==========================================
-  # TUTORIALS
-  # ==========================================
-  /tutorials: 
-    get:
-      tags: 
-        - Tutorials
-      summary: Get all tutorials
-      description:  Mendapatkan semua tutorial platform
-      operationId: getAllTutorials
-      security: []
-      responses:
-        '200':
-          description: Tutorial berhasil diambil
-          content:
-            application/json: 
-              schema:
-                type:  object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  data:
-                    type:  array
-                    items:
-                      type: object
-                      properties: 
-                        id:
-                          type: string
-                          example: tut_001
-                        title: 
-                          type: string
-                          example:  Cara Mendaftar Kursus
-                        description: 
-                          type: string
-                        type:
-                          type: string
-                          enum: [video, article]
-                          example: video
-                        duration: 
-                          type: string
-                          example: "05:30"
-                        url:
-                          type: string
-                          format: uri
-                        thumbnail:
-                          type: string
-                          format: uri
-                        order:
-                          type: integer
-
 # ============================================
 # COMPONENTS
 # ============================================
@@ -1611,62 +1628,67 @@ components:
           type: number
           nullable: true
           example: 40
-          description: Per
+          description: Persentase diskon
 
   # ===============
-  # CourseProgres
+  # CourseProgress
   # ===============
-    EnrolledCourse:
+    CourseProgress:
       type: object
+      description: Progress pembelajaran user pada sebuah kursus
       properties:
-        enrollmentId:
-          type: string
-          example: enr_9876543210
-        course:
-          $ref: '#/components/schemas/Course'
-        enrolledAt:
-          type: string
-          format: date-time
-          example: "2025-12-14T10:30:00Z"
-        status:
-          type: string
-          example: active
-        paymentStatus:
-          type: string
-          enum: [pending, completed, failed, free]
-          example: completed
-        totalPaid:
-          type: number
-          example: 299000
-        progress:
-          type: object
-          properties:
-            currentProgress:
-              type: number
-              format: float
-              example: 72.5
-              description: Progress keseluruhan (%)
-            completedLessons:
-              type: integer
-              example: 18
-            totalLessons:
-              type: integer
-              example: 45
-            lastAccessedAt:
-              type: string
-              format: date-time
-            nextLesson:
-              type: object
-              properties:
-                id:
-                  type: string
-                  example: les_046
-                title:
-                  type: string
-                  example: Advanced React Hooks
-                moduleTitle:
-                  type: string
-                  example: React Advanced
+    courseId:
+      type: string
+      example: crs_1234567890
+
+    courseTitle:
+      type: string
+      example: Front-End Developer
+
+    category:
+      type: string
+      example: Web Development
+
+    thumbnail:
+      type: string
+      format: uri
+      example: https://cdn.vareway.com/courses/frontend-react.jpg
+
+    progressPercentage:
+      type: number
+      format: float
+      example: 72.5
+      description: Progress keseluruhan kursus dalam persen
+
+    completedLessons:
+      type: integer
+      example: 18
+
+    totalLessons:
+      type: integer
+      example: 45
+
+    status:
+      type: string
+      enum: [active, completed]
+      example: active
+
+    startedAt:
+      type: string
+      format: date-time
+      example: "2025-11-01T08:00:00Z"
+
+    completedAt:
+      type: string
+      format: date-time
+      nullable: true
+      example: null
+
+    lastAccessedAt:
+      type: string
+      format: date-time
+      example: "2025-12-14T09:30:00Z"
+
 
   # ==========================================
   # NOTIFICATION SCHEMAS
@@ -1778,6 +1800,279 @@ components:
             type: string
             enum: [in-app, email, push]
           example:  ["in-app", "email"]
-          description: Channel mana yang diaktifkann
+          description: Channel mana yang diaktifkan
 
-   
+    # ==========================================
+    # ADDITIONAL SCHEMAS
+    # ==========================================
+    CourseDetail:
+      allOf:
+        - $ref: '#/components/schemas/Course'
+        - type: object
+          properties:
+            modules:
+              type: array
+              items:
+                $ref: '#/components/schemas/Module'
+            requirements:
+              type: array
+              items:
+                type: string
+              example: ["HTML & CSS basics", "JavaScript fundamentals"]
+            objectives:
+              type: array
+              items:
+                type: string
+              example: ["Build modern web applications", "Master React hooks"]
+            isEnrolled:
+              type: boolean
+              example: false
+
+    EnrolledCourse:
+      allOf:
+        - $ref: '#/components/schemas/Course'
+        - type: object
+          properties:
+            enrollmentId:
+              type: string
+              example: enr_9876543210
+            enrolledAt:
+              type: string
+              format: date-time
+            progressPercentage:
+              type: number
+              format: float
+              example: 45.5
+            completedLessons:
+              type: integer
+              example: 12
+            totalLessons:
+              type: integer
+              example: 30
+            lastAccessedAt:
+              type: string
+              format: date-time
+            status:
+              type: string
+              enum: [active, completed, dropped]
+              example: active
+
+    Module:
+      type: object
+      properties:
+        id:
+          type: string
+          example: mod_001
+        courseId:
+          type: string
+          example: crs_1234567890
+        title:
+          type: string
+          example: Introduction to React
+        description:
+          type: string
+        order:
+          type: integer
+          example: 1
+        duration:
+          type: string
+          example: 5 hours
+        totalLessons:
+          type: integer
+          example: 8
+        completedLessons:
+          type: integer
+          example: 3
+        isLocked:
+          type: boolean
+          example: false
+
+    Lesson:
+      type: object
+      properties:
+        id:
+          type: string
+          example: les_001
+        moduleId:
+          type: string
+          example: mod_001
+        title:
+          type: string
+          example: What is React?
+        type:
+          type: string
+          enum: [video, article, quiz, exercise]
+          example: video
+        duration:
+          type: string
+          example: "15:30"
+        order:
+          type: integer
+          example: 1
+        isCompleted:
+          type: boolean
+          example: false
+        isLocked:
+          type: boolean
+          example: false
+
+    LessonDetail:
+      allOf:
+        - $ref: '#/components/schemas/Lesson'
+        - type: object
+          properties:
+            content:
+              type: string
+              description: Konten lesson (HTML, Markdown, atau video URL)
+            videoUrl:
+              type: string
+              format: uri
+              nullable: true
+            attachments:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  url:
+                    type: string
+                    format: uri
+            nextLesson:
+              type: object
+              nullable: true
+              properties:
+                id:
+                  type: string
+                title:
+                  type: string
+            previousLesson:
+              type: object
+              nullable: true
+              properties:
+                id:
+                  type: string
+                title:
+                  type: string
+
+    Quiz:
+      type: object
+      properties:
+        id:
+          type: string
+          example: quiz_001
+        title:
+          type: string
+          example: React Basics Quiz
+        description:
+          type: string
+        totalQuestions:
+          type: integer
+          example: 20
+        duration:
+          type: integer
+          description: Durasi dalam menit
+          example: 30
+        passingScore:
+          type: number
+          example: 70
+        attempts:
+          type: integer
+          description: Jumlah attempt yang diperbolehkan
+          example: 3
+        attemptsUsed:
+          type: integer
+          example: 1
+
+    Question:
+      type: object
+      properties:
+        id:
+          type: string
+          example: q_001
+        question:
+          type: string
+          example: What is React?
+        type:
+          type: string
+          enum: [single_choice, multiple_choice, true_false]
+          example: single_choice
+        options:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                example: opt_a
+              text:
+                type: string
+                example: A JavaScript library
+        points:
+          type: number
+          example: 5
+
+    Pagination:
+      type: object
+      properties:
+        currentPage:
+          type: integer
+          example: 1
+        totalPages:
+          type: integer
+          example: 5
+        totalItems:
+          type: integer
+          example: 50
+        itemsPerPage:
+          type: integer
+          example: 10
+        hasNextPage:
+          type: boolean
+          example: true
+        hasPreviousPage:
+          type: boolean
+          example: false
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Error message
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+  # ==========================================
+  # RESPONSES
+  # ==========================================
+  responses:
+    Unauthorized:
+      description: Unauthorized - Token tidak valid atau expired
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: Unauthorized - Please login first
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: Resource not found
